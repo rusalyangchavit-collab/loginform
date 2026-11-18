@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Milo - Computer Lab Management</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  
+  <style>
+    /* Modern Dark / Mesh Gradient Background */
+    body {
+      background-color: #0f172a;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(30, 41, 59, 0.8) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(15, 23, 42, 0.9) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(30, 58, 138, 0.25) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(17, 24, 39, 0.8) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(15, 23, 42, 0.9) 0px, transparent 50%);
+      background-attachment: fixed;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    /* Glassmorphism Panel Container */
+    .glass-card {
+      background: rgba(30, 41, 59, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 0.75rem;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    /* Navbar Styling */
+    .custom-navbar {
+      background: rgba(15, 23, 42, 0.8) !important;
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* PC Cards */
+    .pc-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 0.5rem;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pc-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+      background: rgba(30, 41, 59, 0.8);
+    }
+
+    /* Status Top Accent Borders */
+    .pc-available { border-top: 4px solid #10b981; }
+    .pc-occupied { border-top: 4px solid #ef4444; }
+    .pc-maintenance { border-top: 4px solid #f59e0b; }
+
+    /* Custom Badges */
+    .status-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      padding: 0.25em 0.6em;
+      border-radius: 0.375rem;
+    }
+
+    /* Modal Styling */
+    .modal-content {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-header, .modal-footer {
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .form-control {
+      background-color: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+    }
+
+    .form-control:focus {
+      background-color: #0f172a;
+      border-color: #3b82f6;
+      color: #f8fafc;
+      box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+    }
+
+    /* List Item Custom Background */
+    .custom-list-item {
+      background: transparent;
+      border-color: rgba(255, 255, 255, 0.08);
+      transition: background 0.2s;
+    }
+
+    .custom-list-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark custom-navbar sticky-top">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand fw-bold text-primary" href="#">
+        <i class="bi bi-display me-2"></i><span class="text-white">Computer</span> Laboratory Scheduling And Monitoring System
+      </a>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-dark border border-secondary text-light fw-normal py-2 px-3" id="live-clock"></span>
+        <button class="btn btn-outline-danger btn-sm px-3 py-1 fw-semibold d-flex align-items-center" onclick="handleLogout()">
+          <i class="bi bi-box-arrow-right me-1"></i> Log Out
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container my-4" id="main-dashboard">
+    <!-- Header Controls -->
+    <div class="row mb-4 align-items-center">
+      <div class="col-md-6">
+        <h2 class="fw-bold mb-1" id="user-greeting">Welcome Back Milo!</h2>
+        <p class="text-secondary mb-0">Monitor active workstations and manage lab schedules</p>
+      </div>
+      <div class="col-md-6 text-md-end mt-3 mt-md-0">
+        <button class="btn btn-primary px-4 py-2 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+          <i class="bi bi-calendar-plus me-2"></i>New Schedule
+        </button>
+      </div>
+    </div>
+
+    <!-- Status Overview Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="glass-card p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <small class="text-uppercase fw-bold text-secondary style-sub">Total PCs</small>
+              <h3 class="fw-bold mb-0 mt-1" id="stat-total">12</h3>
+            </div>
+            <i class="bi bi-pc-display fs-1 text-secondary opacity-50"></i>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="glass-card p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <small class="text-uppercase fw-bold text-success">Available</small>
+              <h3 class="fw-bold mb-0 mt-1 text-success" id="stat-available">0</h3>
+            </div>
+            <i class="bi bi-check-circle fs-1 text-success opacity-75"></i>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="glass-card p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <small class="text-uppercase fw-bold text-danger">Occupied</small>
+              <h3 class="fw-bold mb-0 mt-1 text-danger" id="stat-occupied">0</h3>
+            </div>
+            <i class="bi bi-person-workspace fs-1 text-danger opacity-75"></i>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="glass-card p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <small class="text-uppercase fw-bold text-warning">Maintenance</small>
+              <h3 class="fw-bold mb-0 mt-1 text-warning" id="stat-maintenance">0</h3>
+            </div>
+            <i class="bi bi-tools fs-1 text-warning opacity-75"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Grid Content -->
+    <div class="row g-4">
+      <!-- Computer Layout (Monitoring View) -->
+      <div class="col-lg-8">
+        <div class="glass-card p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0">Live Workstation Grid</h5>
+            <small class="text-secondary">Click a workstation to manage status</small>
+          </div>
+          <div class="row g-3" id="pc-grid">
+            <!-- Dynamically populated via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Lab Schedule List -->
+      <div class="col-lg-4">
+        <div class="glass-card p-4">
+          <h5 class="fw-bold mb-3">Upcoming Schedules</h5>
+          <div class="list-group list-group-flush" id="schedule-list">
+            <!-- Dynamically populated via JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Reserve Lab / Add Schedule -->
+  <div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Schedule Laboratory</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="scheduleForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label text-secondary">Subject / Purpose</label>
+              <input type="text" class="form-control" id="schedSubject" required placeholder="e.g., CS101 Lecture">
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary">Instructor / User</label>
+              <input type="text" class="form-control" id="schedInstructor" required placeholder="Prof. Smith">
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary">Time Block</label>
+              <input type="text" class="form-control" id="schedTime" required placeholder="e.g., 10:00 AM - 12:00 PM">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary px-4">Save Schedule</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Application Script -->
+  <script>
+    // System Data State
+    const totalPCs = 12;
+    let pcs = JSON.parse(localStorage.getItem('lab_pcs')) || Array.from({ length: totalPCs }, (_, i) => ({
+      id: i + 1,
+      status: i % 5 === 0 ? 'occupied' : (i === 7 ? 'maintenance' : 'available'),
+      user: i % 5 === 0 ? `Student_${i + 1}` : 'N/A'
+    }));
+
+    let schedules = JSON.parse(localStorage.getItem('lab_schedules')) || [
+      { id: 1, subject: 'CS 101 - Intro to Programming', instructor: 'Prof. Davis', time: '08:00 AM - 10:00 AM' },
+      { id: 2, subject: 'IT 204 - Database Systems', instructor: 'Dr. Martinez', time: '01:00 PM - 03:00 PM' }
+    ];
+
+    // Initialize Page
+    document.addEventListener('DOMContentLoaded', () => {
+      renderGrid();
+      renderSchedules();
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // Display stored name in greeting if available
+      const savedName = sessionStorage.getItem('name');
+      if (savedName) {
+        document.getElementById('user-greeting').innerText = `Welcome Back ${savedName}!`;
+      }
+    });
+
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('live-clock').innerText = now.toLocaleString();
+    }
+
+    // Working Logout Function
+    function handleLogout() {
+      if (confirm('Are you sure you want to log out?')) {
+        // Clear session and local storages
+        sessionStorage.clear();
+        localStorage.removeItem('lab_pcs');
+        localStorage.removeItem('lab_schedules');
+
+        // Redirect back to the main login/home page
+        window.location.href = "loginform.html";
+      }
+    }
+
+    // Save state to LocalStorage
+    function saveData() {
+      localStorage.setItem('lab_pcs', JSON.stringify(pcs));
+      localStorage.setItem('lab_schedules', JSON.stringify(schedules));
+    }
+
+    // Render PC Workstation Grid
+    function renderGrid() {
+      const gridContainer = document.getElementById('pc-grid');
+      gridContainer.innerHTML = '';
+
+      let availableCount = 0;
+      let occupiedCount = 0;
+      let maintenanceCount = 0;
+
+      pcs.forEach(pc => {
+        if (pc.status === 'available') availableCount++;
+        else if (pc.status === 'occupied') occupiedCount++;
+        else if (pc.status === 'maintenance') maintenanceCount++;
+
+        const col = document.createElement('div');
+        col.className = 'col-6 col-sm-4 col-md-3';
+        
+        const badgeClass = pc.status === 'available' ? 'bg-success text-white' : (pc.status === 'occupied' ? 'bg-danger text-white' : 'bg-warning text-dark');
+
+        col.innerHTML = `
+          <div class="card pc-card pc-${pc.status} p-2 text-center" onclick="togglePCStatus(${pc.id})">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <small class="fw-bold text-light">PC-${String(pc.id).padStart(2, '0')}</small>
+              <span class="badge ${badgeClass} status-badge">${pc.status}</span>
+            </div>
+            <i class="bi bi-display fs-2 my-1 text-secondary opacity-75"></i>
+            <small class="text-truncate d-block text-secondary" style="font-size: 0.75rem;">
+              ${pc.status === 'occupied' ? pc.user : '—'}
+            </small>
+          </div>
+        `;
+        gridContainer.appendChild(col);
+      });
+
+      // Update counters
+      document.getElementById('stat-total').innerText = pcs.length;
+      document.getElementById('stat-available').innerText = availableCount;
+      document.getElementById('stat-occupied').innerText = occupiedCount;
+      document.getElementById('stat-maintenance').innerText = maintenanceCount;
+    }
+
+    // Toggle PC Status on Click
+    function togglePCStatus(id) {
+      const pc = pcs.find(p => p.id === id);
+      if (!pc) return;
+
+      if (pc.status === 'available') {
+        const username = prompt(`Assign user to PC-${String(id).padStart(2, '0')}:`, 'Student');
+        if (username) {
+          pc.status = 'occupied';
+          pc.user = username;
+        }
+      } else if (pc.status === 'occupied') {
+        if (confirm(`Set PC-${String(id).padStart(2, '0')} to Maintenance?`)) {
+          pc.status = 'maintenance';
+          pc.user = 'N/A';
+        } else {
+          pc.status = 'available';
+          pc.user = 'N/A';
+        }
+      } else {
+        pc.status = 'available';
+        pc.user = 'N/A';
+      }
+
+      saveData();
+      renderGrid();
+    }
+
+    // Render Lab Schedule List
+    function renderSchedules() {
+      const listContainer = document.getElementById('schedule-list');
+      listContainer.innerHTML = '';
+
+      if (schedules.length === 0) {
+        listContainer.innerHTML = '<p class="text-secondary small">No scheduled classes for today.</p>';
+        return;
+      }
+
+      schedules.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'list-group-item custom-list-item px-0 py-2';
+        div.innerHTML = `
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="mb-1 fw-bold text-light">${item.subject}</h6>
+              <small class="text-secondary d-block"><i class="bi bi-person me-1"></i>${item.instructor}</small>
+              <small class="text-primary fw-semibold"><i class="bi bi-clock me-1"></i>${item.time}</small>
+            </div>
+            <button class="btn btn-sm text-danger opacity-75 hover-opacity-100" onclick="deleteSchedule(${item.id})">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        `;
+        listContainer.appendChild(div);
+      });
+    }
+
+    // Add New Schedule
+    document.getElementById('scheduleForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const subject = document.getElementById('schedSubject').value;
+      const instructor = document.getElementById('schedInstructor').value;
+      const time = document.getElementById('schedTime').value;
+
+      schedules.push({ id: Date.now(), subject, instructor, time });
+      saveData();
+      renderSchedules();
+
+      // Reset & hide modal
+      e.target.reset();
+      const modalEl = document.getElementById('scheduleModal');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+    });
+
+    // Delete Schedule
+    function deleteSchedule(id) {
+      schedules = schedules.filter(s => s.id !== id);
+      saveData();
+      renderSchedules();
+    }
+  </script>
+</body>
+</html>
